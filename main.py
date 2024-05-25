@@ -103,7 +103,7 @@ def filter_text(text):
         text = text.replace(key, value)
 
     # Remove any remaining special characters
-    pattern = r'[^a-zA-Z0-9\s.,!?]'
+    pattern = r'[^a-zA-Z0-9\s\'.,!?]'
     text = re.sub(pattern, '', text)
 
     # Remove emoji and non-ASCII characters
@@ -111,13 +111,33 @@ def filter_text(text):
     return text
 
 
-def create_audio(text):
+def create_ssml(text):
     text = filter_text(text)
     words = text.split()
     ssml_text = "<speak>"
+    segment = ""
+    segment_count = 0
+
     for i, word in enumerate(words):
-        ssml_text += f'<mark name="{word}" />{word} '
+        if len(segment) + len(word) + 1 <= 20:  # +1 for the space
+            if segment:
+                segment += " "
+            segment += word
+        else:
+            ssml_text += f'<mark name="{segment}" />{segment} '
+            segment_count += 1
+            segment = word
+
+    if segment:
+        ssml_text += f'<mark name="{segment}" />{segment} '
+
     ssml_text += "</speak>"
+    return ssml_text
+
+
+def create_audio(text):
+    text = filter_text(text)
+    ssml_text = create_ssml(text)
 
     synthesis_input = tts.SynthesisInput(ssml=ssml_text)
 
@@ -129,7 +149,7 @@ def create_audio(text):
     audio_config = tts.AudioConfig(
         audio_encoding=tts.AudioEncoding.MP3,
         effects_profile_id=['small-bluetooth-speaker-class-device'],
-        speaking_rate=0.8
+        speaking_rate=1
     )
 
     request = tts.SynthesizeSpeechRequest(
@@ -194,7 +214,7 @@ def create_video(audio_file_path, time_stamps):
                     font='Arial-Bold',  # Ensure this font is installed on your system
                     color='white', 
                     stroke_color='black', 
-                    stroke_width=5)  # Adjust stroke_width as needed
+                    stroke_width=2)  # Adjust stroke_width as needed
                 .set_position('center')
                 .set_duration(text_duration)
                 .set_start(time_stamps[i]['time_seconds']))
@@ -203,7 +223,7 @@ def create_video(audio_file_path, time_stamps):
 
     final_clip = CompositeVideoClip([video_clip, *text_clips])
     final_clip = final_clip.set_audio(audio)
-    final_clip.write_videofile('output_videooo.mp4', fps=24)
+    final_clip.write_videofile('output_videooo.mp4', fps=24, codec='libx264', audio_codec='aac')
 
     print("Video creation complete!")
 
@@ -241,10 +261,6 @@ def create_reddit_tiktok_clip(text):
 
 
 def main():
-    text = "AITA for cancelling the entire vacation when I found out that my stepdaughters deliberately hid my daughter's passport to get her to stay home? I've been married to my wife Beth for 5 years. I have a bio daughter named Jessica (she's 18). And I also have two stepdaughters named Monica and Leah. They're 25 &amp; 28. Both are single moms and live with us currently.\n\nthere's been issues about my stepdaughters asking my daughter to babysit the kids. Jessica didn't have a problem with it at first since this is what she does to earn money but since her stepsisters don't pay her much, she'd just refuse to babysit. We worked this out by having my wife take care of paying for the babysitting.\n\n\nI planned a family vacation for 3 days and everyone wanted to go. However, Both Monica &amp; Leah suggested that Jessica stay home and watch the kids since Beth doesn't want her grandkids to come. They said it's because the kids are used to Jessica and hiring another babysitter would cause issues. And also said that Jessica isn't too \"fond\" of our destination but it was obvious that Jessica wanted to go."
-    create_reddit_tiktok_clip(text)
-
-    #text = filter_text(text)
-    #print(text)
+    create_random_reddit_tiktok_clip()
 
 main()
