@@ -1,31 +1,49 @@
 import requests
+from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
 import os
-import json
-from google.cloud import texttospeech
-import numpy as np
+from google.cloud import texttospeech_v1beta1 as tts
 from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip, AudioFileClip
-import re
 import random
-import pyautogui
-import time
+import re
+
 
 load_dotenv()
 
 reddit_api_url = "https://oauth.reddit.com"
-reddit_headers = {
-    "Accept": "application/json",
-    "User-Agent": os.getenv("USERAGENT"),
-    "Authorization": f"bearer {os.getenv('AUTHORIZATION')}"
-}
+reddit_access_token_url = "https://www.reddit.com/api/v1/access_token"
+reddit_app_username = os.getenv('REDDIT_APP_USERNAME')
+reddit_app_secret = os.getenv('REDDIT_APP_SECRET')
+reddit_username = os.getenv('USERNAME')
+reddit_password = os.getenv('PASSWORD')
 
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'sa_redtok.json'
-client = texttospeech.TextToSpeechClient()
+client = tts.TextToSpeechClient()
+
+def get_reddit_access_token():
+    auth = HTTPBasicAuth(reddit_app_username, reddit_app_secret)
+    data = {
+        'grant_type': 'password',
+        'username': reddit_username,
+        'password': reddit_password
+    }
+
+    response = requests.post(reddit_access_token_url, auth=auth, data=data)
+    if response.status_code == 200:
+        r = response.json()
+        return r['access_token']
+    return None
 
 
 def get_reddit_posts(subreddit):
     suffix = f"/r/{subreddit}/top?t=year"
     url = reddit_api_url + suffix
+    access_token = get_reddit_access_token()
+
+    reddit_headers = {
+        "User-Agent": os.getenv("USERAGENT"),
+        "Authorization": f"bearer {access_token}"
+    }
     
     response = requests.get(url, headers=reddit_headers)
 
@@ -50,33 +68,96 @@ def get_reddit_posts(subreddit):
 
     return res;
 
-def create_audio(text):
-    synthesis_input = texttospeech.SynthesisInput(text=text)
 
-    voice = texttospeech.VoiceSelectionParams(
+def filter_text(text):
+    replacements = {
+        "&amp": "and",
+        "&": "and",
+        "&lt;": "<",
+        "&gt;": ">",
+        "&quot;": "\"",
+        "&apos;": "'",
+        "\\n": " ",
+        "\\t": " ",
+        "\\r": " ",
+        "\u200b": "",
+        "\u200c": "",
+        "\u200d": "",
+        "\u2060": "",
+        "±": "plus-minus",
+        "×": "times",
+        "÷": "divided by",
+        "√": "square root",
+        "$": "dollars",
+        "€": "euros",
+        "£": "pounds",
+        "¥": "yen",
+        "©": "copyright",
+        "®": "registered",
+        "™": "trademark",
+        "AITA": "Am I the A hole",
+        "aita": "Am I the A hole"
+    }
+
+    for key, value in replacements.items():
+        text = text.replace(key, value)
+
+    # Remove any remaining special characters
+    pattern = r'[^a-zA-Z0-9\s.,!?]'
+    text = re.sub(pattern, '', text)
+
+    # Remove emoji and non-ASCII characters
+    text = text.encode('ascii', 'ignore').decode('ascii')
+    return text
+
+
+def create_audio(text):
+    text = filter_text(text)
+    words = text.split()
+    ssml_text = "<speak>"
+    for i, word in enumerate(words):
+        ssml_text += f'<mark name="{word}" />{word} '
+    ssml_text += "</speak>"
+
+    synthesis_input = tts.SynthesisInput(ssml=ssml_text)
+
+    voice = tts.VoiceSelectionParams(
         language_code="en-US",
         name="en-US-Standard-C"
     )
 
-    audio_config = texttospeech.AudioConfig(
-        audio_encoding=texttospeech.AudioEncoding.MP3,
+    audio_config = tts.AudioConfig(
+        audio_encoding=tts.AudioEncoding.MP3,
         effects_profile_id=['small-bluetooth-speaker-class-device'],
-        speaking_rate=1,
-        pitch=1
+        speaking_rate=0.8
     )
 
-    response = client.synthesize_speech(
+    request = tts.SynthesizeSpeechRequest(
         input=synthesis_input,
         voice=voice,
-        audio_config=audio_config
+        audio_config=audio_config,
+        enable_time_pointing=["SSML_MARK"]
     )
+    
+    response = client.synthesize_speech(request=request)
 
     with open("output.mp3", "wb") as output:
         output.write(response.audio_content)
         print("Audio content written to file output.mp3")
 
-        return "output.mp3"
-    
+    file = open("timestamps.txt", "w")
+
+    time_points = []
+    for time_point in response.timepoints:
+        time_points.append({
+            "mark_name": time_point.mark_name,
+            "time_seconds": time_point.time_seconds
+        })
+        file.write(f"Word: {time_point.mark_name}, Timestamp: {time_point.time_seconds}\n")
+
+    return "output.mp3", time_points
+
+
 def get_random_section(duration):
     video_path = random.choice(["minecraft1.mov", "minecraft2.mov"])
 
@@ -89,83 +170,45 @@ def get_random_section(duration):
     return video.subclip(start_time, end_time)
 
 
-def create_video(text, audio_file_path):
+def create_video(audio_file_path, time_stamps):
     audio = AudioFileClip(audio_file_path)
     duration = audio.duration
     video_clip = get_random_section(duration)
-    final_clip = video_clip.set_audio(audio)
-    final_clip.write_videofile('output_video.mp4', fps=24)
+
+    video_clip = video_clip.resize(height=1080)  # Set height to 1080p
+    video_clip = video_clip.crop(width=608, height=1080, x_center=video_clip.w / 2, y_center=video_clip.h / 2)
+
+    text_clips = []
+    check = time_stamps[0]['mark_name'] is not None
+    print(f"Timestamps? {check}")
+    for i in range(len(time_stamps)):
+        text_duration = 1
+        if i == len(time_stamps)-1:
+            text_duration = duration - time_stamps[i]['time_seconds']
+        else:
+            text_duration = time_stamps[i+1]['time_seconds'] - time_stamps[i]['time_seconds']
+        
+        txt_clip = (TextClip(
+                    time_stamps[i]['mark_name'], 
+                    fontsize=60, 
+                    font='Arial-Bold',  # Ensure this font is installed on your system
+                    color='white', 
+                    stroke_color='black', 
+                    stroke_width=5)  # Adjust stroke_width as needed
+                .set_position('center')
+                .set_duration(text_duration)
+                .set_start(time_stamps[i]['time_seconds']))
+        
+        text_clips.append(txt_clip)
+
+    final_clip = CompositeVideoClip([video_clip, *text_clips])
+    final_clip = final_clip.set_audio(audio)
+    final_clip.write_videofile('output_videooo.mp4', fps=24)
 
     print("Video creation complete!")
 
-def capcut():
-    time.sleep(4)
-    pyautogui.moveTo(387,522,duration=3) # clicks on new video
-    pyautogui.click()
-    pyautogui.click()
 
-    time.sleep(4)
-    pyautogui.moveTo(889,346,duration=3) # clicks upload
-    pyautogui.click()
-
-    time.sleep(4)
-    pyautogui.moveTo(1012,319,duration=3) # clicks on edited video
-    pyautogui.click()
-
-    time.sleep(4)
-    pyautogui.moveTo(1010,673,duration=3) # clicks open
-    pyautogui.click()
-
-    time.sleep(4)
-    pyautogui.moveTo(854,300,duration=3) # clicks on fill
-    pyautogui.click()
-
-    time.sleep(4)
-    pyautogui.moveTo(35,496,duration=3) # clicks on caption
-    pyautogui.click()
-
-    time.sleep(4)
-    pyautogui.moveTo(258,194,duration=3) # clicks on auto caption
-    pyautogui.click()
-
-    time.sleep(4)
-    pyautogui.moveTo(219,403,duration=3) # clicks on generate
-    pyautogui.click()
-
-    time.sleep(5)
-    pyautogui.moveTo(897,578,duration=3) # key down to drag
-    pyautogui.mouseDown()
-
-    time.sleep(4)
-    pyautogui.moveTo(897,405,duration=3) # release drag
-    pyautogui.mouseUp()
-
-    time.sleep(4)
-    pyautogui.moveTo(1414,178,duration=3) # click presets
-    pyautogui.click()
-
-    time.sleep(4)
-    pyautogui.moveTo(1335,447,duration=3) # click text font
-    pyautogui.click()
-
-    time.sleep(4)
-    pyautogui.moveTo(1220,116,duration=3) # click export
-    pyautogui.click()
-
-    time.sleep(4)
-    pyautogui.moveTo(1227,632,duration=3) # click download
-    pyautogui.click()
-
-    time.sleep(4)
-    pyautogui.moveTo(1179,789,duration=3) # click export
-    pyautogui.click()
-
-    time.sleep(60)
-    pyautogui.moveTo(472,20,duration=3) # click back to home page
-    pyautogui.click()
-
-
-def main():
+def create_random_reddit_tiktok_clip():
     titles = set()
     file = open('titles.txt', 'r+')
 
@@ -175,29 +218,33 @@ def main():
 
     reddit_posts = get_reddit_posts('amitheasshole')
 
-    texts = []
+    text = ""
 
-    count = 0
     for post in reddit_posts:
-        # print(f"title: {post[0]}\ntext: {post[1]}\n")
-        if count == 1:
-            break
         if post[0] in titles or len(post[1]) < 1500:
             continue
-        texts.append(post[1])
+        text = post[1]
+        file.write('\n')
         file.write(post[0])
-        count += 1
+        break
 
-    for text in texts:
-        print(text)
-        audio_file = create_audio(text)
-        # create_video(text, audio_file)
-        # capcut()
+    print(text)
 
-def get_position():
-    time.sleep(2)
-    current_mouse_position = pyautogui.position()
-    print(f"Current mouse position: {current_mouse_position}")
+    audio_file, time_points= create_audio(text)
+    create_video(audio_file, time_points)
+    file.close()
 
+
+def create_reddit_tiktok_clip(text):
+    audio_file, time_points= create_audio(text)
+    create_video(audio_file, time_points)
+
+
+def main():
+    text = "AITA for cancelling the entire vacation when I found out that my stepdaughters deliberately hid my daughter's passport to get her to stay home? I've been married to my wife Beth for 5 years. I have a bio daughter named Jessica (she's 18). And I also have two stepdaughters named Monica and Leah. They're 25 &amp; 28. Both are single moms and live with us currently.\n\nthere's been issues about my stepdaughters asking my daughter to babysit the kids. Jessica didn't have a problem with it at first since this is what she does to earn money but since her stepsisters don't pay her much, she'd just refuse to babysit. We worked this out by having my wife take care of paying for the babysitting.\n\n\nI planned a family vacation for 3 days and everyone wanted to go. However, Both Monica &amp; Leah suggested that Jessica stay home and watch the kids since Beth doesn't want her grandkids to come. They said it's because the kids are used to Jessica and hiring another babysitter would cause issues. And also said that Jessica isn't too \"fond\" of our destination but it was obvious that Jessica wanted to go."
+    create_reddit_tiktok_clip(text)
+
+    #text = filter_text(text)
+    #print(text)
 
 main()
