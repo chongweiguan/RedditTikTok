@@ -223,12 +223,13 @@ def create_video(audio_file_path, time_stamps):
 
     final_clip = CompositeVideoClip([video_clip, *text_clips])
     final_clip = final_clip.set_audio(audio)
-    final_clip.write_videofile('output_videooo.mp4', fps=24, codec='libx264', audio_codec='aac')
+    final_clip.write_videofile('output_video.mp4', fps=24, codec='libx264', audio_codec='aac')
 
     print("Video creation complete!")
 
+    return 'output_video.mp4'
 
-def create_random_reddit_tiktok_clip():
+def get_random_reddit_post():
     titles = set()
     file = open('titles.txt', 'r+')
 
@@ -248,19 +249,20 @@ def create_random_reddit_tiktok_clip():
         file.write(post[0])
         break
 
-    print(text)
-
-    audio_file, time_points= create_audio(text)
-    create_video(audio_file, time_points)
     file.close()
+    return text
+
+
+def create_random_reddit_tiktok_clip():
+    text = get_random_reddit_post()
+    audio_file, time_points= create_audio(text)
+    video_path = create_video(audio_file, time_points)
+
+    return video_path
 
 
 def create_reddit_tiktok_clip(text):
     audio_file, time_points= create_audio(text)
-    create_video(audio_file, time_points)
+    video_path = create_video(audio_file, time_points)
+    return video_path
 
-
-def main():
-    create_random_reddit_tiktok_clip()
-
-main()
