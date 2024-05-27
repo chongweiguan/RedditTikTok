@@ -15,6 +15,9 @@ Introducing the TikTok Reddit Bot – your ultimate tool for creating viral vide
 <br>
 <br>
 What sets this bot apart is its convenience – you can generate videos from anywhere, and it takes less than 3 minutes to receive your completed video. Join the trend and start creating viral TikTok content effortlessly with our TikTok Reddit Bot!
+<br>
+<br>
+You can actually check out some of my videos on TikTok @reddit_coolest_story
 
 ## Features
 
@@ -56,8 +59,14 @@ What sets this bot apart is its convenience – you can generate videos from any
 
 https://github.com/chongweiguan/RedditTikTok/assets/75872136/07c9b415-e3c8-4f79-9575-d2a5ffa03dc5
 
+## Example Video
+
+
+https://github.com/chongweiguan/RedditTikTok/assets/75872136/3c7ab049-4afe-4b90-8726-7b899ebf491e
+
 
 
 
 ## Disclamer
-The bot might take 2-3 minutes to create and send the video, especially if the video is very long.
+- The bot might take 2-3 minutes to create and send the video, especially if the video is very long.
+- Google Cloud Text-To-Speech API is not completely free. Please refer to [this](https://cloud.google.com/text-to-speech/pricing) before deciding to use Google Cloud Text-To-Speech API. 
