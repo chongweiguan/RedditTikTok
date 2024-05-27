@@ -17,7 +17,7 @@ Introducing the TikTok Reddit Bot – your ultimate tool for creating viral vide
 What sets this bot apart is its convenience – you can generate videos from anywhere, and it takes less than 3 minutes to receive your completed video. Join the trend and start creating viral TikTok content effortlessly with this TikTok Reddit Bot!
 <br>
 <br>
-You can actually check out some of my videos on TikTok @reddit_coolest_story
+You can actually check out some of my videos on TikTok [@reddit_coolest_story](https://www.tiktok.com/@reddit_coolest_story)
 
 ## Features
 
