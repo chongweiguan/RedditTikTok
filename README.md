@@ -11,10 +11,10 @@ What if we could automate this process and create such a video in just 2-3 minut
 <br>
 <br>
 
-Introducing the TikTok Reddit Bot – your ultimate tool for creating viral videos with ease! With our bot, you can effortlessly produce engaging content that captivates millions. Users can choose to retrieve a random post from Reddit or input their own story. The bot utilizes the Google Text-to-Speech API to convert text into speech and generate precise word timestamps. Then, using Moviepy, it seamlessly integrates the audio, video clip, and subtitles.
+Introducing the TikTok Reddit Bot – your ultimate tool for creating viral videos with ease! With this bot, you can effortlessly produce engaging content that captivates millions. Users can choose to retrieve a random post from Reddit or input their own story. The bot utilizes the Google Text-to-Speech API to convert text into speech and generate precise word timestamps. Then, using Moviepy, it seamlessly integrates the audio, video clip, and subtitles.
 <br>
 <br>
-What sets this bot apart is its convenience – you can generate videos from anywhere, and it takes less than 3 minutes to receive your completed video. Join the trend and start creating viral TikTok content effortlessly with our TikTok Reddit Bot!
+What sets this bot apart is its convenience – you can generate videos from anywhere, and it takes less than 3 minutes to receive your completed video. Join the trend and start creating viral TikTok content effortlessly with this TikTok Reddit Bot!
 <br>
 <br>
 You can actually check out some of my videos on TikTok @reddit_coolest_story
