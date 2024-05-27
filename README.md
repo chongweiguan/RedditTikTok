@@ -67,6 +67,6 @@ https://github.com/chongweiguan/RedditTikTok/assets/75872136/3c7ab049-4afe-4b90-
 
 
 
-## Disclamer
+## Disclaimers
 - The bot might take 2-3 minutes to create and send the video, especially if the video is very long.
 - Google Cloud Text-To-Speech API is not completely free. Please refer to [this](https://cloud.google.com/text-to-speech/pricing) before deciding to use Google Cloud Text-To-Speech API. 
