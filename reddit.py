@@ -179,7 +179,7 @@ def create_audio(text):
 
 
 def get_random_section(duration):
-    video_path = random.choice(["minecraft1.mov", "minecraft2.mov"])
+    video_path = random.choice(["vid1.mp4", "vid2.mp4"])
 
     video = VideoFileClip(video_path)
     video_duration = video.duration  # Duration of the video in seconds
@@ -210,7 +210,7 @@ def create_video(audio_file_path, time_stamps):
         
         txt_clip = (TextClip(
                     time_stamps[i]['mark_name'], 
-                    fontsize=60, 
+                    fontsize=50, 
                     font='Arial-Bold',  # Ensure this font is installed on your system
                     color='white', 
                     stroke_color='black', 

@@ -1,7 +1,7 @@
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, ConversationHandler, MessageHandler, filters
 from telegram import Update
 import logging
-from reddit import get_random_reddit_post, create_audio, create_video, test
+from reddit import get_random_reddit_post, create_audio, create_video
 from dotenv import load_dotenv
 import os
 
