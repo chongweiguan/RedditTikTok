@@ -116,7 +116,8 @@ def create_ssml(text):
     words = text.split()
     ssml_text = "<speak>"
     segment = ""
-    segment_count = 0
+    segments = []  # List to store segments
+    segment_index = 0  # Initialize segment index
 
     for i, word in enumerate(words):
         if len(segment) + len(word) + 1 <= 20:  # +1 for the space
@@ -124,20 +125,22 @@ def create_ssml(text):
                 segment += " "
             segment += word
         else:
-            ssml_text += f'<mark name="{segment}" />{segment} '
-            segment_count += 1
+            ssml_text += f'<mark name="{segment_index}" />{segment} '
+            segments.append(segment)
             segment = word
+            segment_index += 1
 
     if segment:
-        ssml_text += f'<mark name="{segment}" />{segment} '
+        ssml_text += f'<mark name="{segment_index}" />{segment} '
+        segments.append(segment)
 
     ssml_text += "</speak>"
-    return ssml_text
+    return ssml_text, segments
 
 
 def create_audio(text):
     text = filter_text(text)
-    ssml_text = create_ssml(text)
+    ssml_text, segments = create_ssml(text)
 
     synthesis_input = tts.SynthesisInput(ssml=ssml_text)
 
@@ -175,11 +178,11 @@ def create_audio(text):
         })
         file.write(f"Word: {time_point.mark_name}, Timestamp: {time_point.time_seconds}\n")
 
-    return "output.mp3", time_points
+    return "output.mp3", time_points, segments
 
 
 def get_random_section(duration):
-    video_path = random.choice(["vid1.mp4", "vid2.mp4"])
+    video_path = random.choice(["minecraft1.mov", "minecraft2.mov"])
 
     video = VideoFileClip(video_path)
     video_duration = video.duration  # Duration of the video in seconds
@@ -190,7 +193,7 @@ def get_random_section(duration):
     return video.subclip(start_time, end_time)
 
 
-def create_video(audio_file_path, time_stamps):
+def create_video(audio_file_path, time_stamps, segments):
     audio = AudioFileClip(audio_file_path)
     duration = audio.duration
     video_clip = get_random_section(duration)
@@ -201,6 +204,7 @@ def create_video(audio_file_path, time_stamps):
     text_clips = []
     check = time_stamps[0]['mark_name'] is not None
     print(f"Timestamps? {check}")
+
     for i in range(len(time_stamps)):
         text_duration = 1
         if i == len(time_stamps)-1:
@@ -209,7 +213,7 @@ def create_video(audio_file_path, time_stamps):
             text_duration = time_stamps[i+1]['time_seconds'] - time_stamps[i]['time_seconds']
         
         txt_clip = (TextClip(
-                    time_stamps[i]['mark_name'], 
+                    segments[i], 
                     fontsize=50, 
                     font='Arial-Bold',  # Ensure this font is installed on your system
                     color='white', 
@@ -255,14 +259,14 @@ def get_random_reddit_post():
 
 def create_random_reddit_tiktok_clip():
     text = get_random_reddit_post()
-    audio_file, time_points= create_audio(text)
-    video_path = create_video(audio_file, time_points)
+    audio_file, time_points, segments = create_audio(text)
+    video_path = create_video(audio_file, time_points, segments)
 
     return video_path
 
 
 def create_reddit_tiktok_clip(text):
-    audio_file, time_points= create_audio(text)
-    video_path = create_video(audio_file, time_points)
+    audio_file, time_points, segments = create_audio(text)
+    video_path = create_video(audio_file, time_points, segments)
     return video_path
 

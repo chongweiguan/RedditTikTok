@@ -2,6 +2,7 @@ from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, Conve
 from telegram import Update
 import logging
 from reddit import get_random_reddit_post, create_audio, create_video
+from rate_limiter import isValid
 from dotenv import load_dotenv
 import os
 
@@ -47,19 +48,28 @@ async def create_random_reddit_tiktok_video(update: Update, context: ContextType
 async def confirmation_response(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_response = update.message.text.lower()
     if user_response == 'yes':
-        await context.bot.send_message(chat_id=update.effective_chat.id, text='Creating audio...')
-        audio_file, time_points= create_audio(text)
-        await context.bot.send_message(chat_id=update.effective_chat.id, text='Creating video...')
-        video_path = create_video(audio_file, time_points)
-        await context.bot.send_message(chat_id=update.effective_chat.id, text='Sending video...')
-        await context.bot.send_document(
-            chat_id=update.message.chat_id, 
-            document=open(video_path, 'rb'),
-            read_timeout=300,
-            write_timeout=300,
-            connect_timeout=300
-        )
-        await context.bot.send_message(chat_id=update.effective_chat.id, text='Video sent!')
+        try:
+            if not isValid(text):
+                await context.bot.send_message(chat_id=update.effective_chat.id, text='Text is too long and has reached daily limit. Please try again tomorrow.')
+                return
+
+            await context.bot.send_message(chat_id=update.effective_chat.id, text='Creating audio...')
+            audio_file, time_points, segments= create_audio(text)
+            await context.bot.send_message(chat_id=update.effective_chat.id, text='Creating video...')
+            video_path = create_video(audio_file, time_points, segments)
+            await context.bot.send_message(chat_id=update.effective_chat.id, text='Sending video...')
+            await context.bot.send_document(
+                chat_id=update.message.chat_id, 
+                document=open(video_path, 'rb'),
+                read_timeout=300,
+                write_timeout=300,
+                connect_timeout=300
+            )
+
+            await context.bot.send_message(chat_id=update.effective_chat.id, text='Video sent!')
+        except Exception as e:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text='Error has occurred. Please try again')
+
     else:
         await context.bot.send_message(chat_id=update.effective_chat.id, text='OK! Let me know if you want to create a video')
     
