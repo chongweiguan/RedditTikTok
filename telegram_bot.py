@@ -61,9 +61,9 @@ async def confirmation_response(update: Update, context: ContextTypes.DEFAULT_TY
             await context.bot.send_document(
                 chat_id=update.message.chat_id, 
                 document=open(video_path, 'rb'),
-                read_timeout=300,
-                write_timeout=300,
-                connect_timeout=300
+                read_timeout=600,
+                write_timeout=600,
+                connect_timeout=600
             )
 
             await context.bot.send_message(chat_id=update.effective_chat.id, text='Video sent!')
@@ -80,9 +80,9 @@ async def confirmation_response(update: Update, context: ContextTypes.DEFAULT_TY
 def main():
     print('starting bot...')
     application = ApplicationBuilder().token(TOKEN)\
-                                      .read_timeout(300)\
-                                      .write_timeout(300)\
-                                      .connect_timeout(300)\
+                                      .read_timeout(600)\
+                                      .write_timeout(600)\
+                                      .connect_timeout(600)\
                                       .build()
     
     start_handler = CommandHandler('start', start)
